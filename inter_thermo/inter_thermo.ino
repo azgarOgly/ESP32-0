@@ -6,7 +6,6 @@
 #define MLX90615_REG_TEMP_AMBIENT 0x26
 #define MLX90615_REG_TEMP_OBJECT  0x27
 
-
 WiFiServer wifiServer(8080);
 
 void setup() {
