@@ -38,3 +38,4 @@
     Wire.read(); // read and discard PEC (packet error code)
     return data;
   }
+
