@@ -1,6 +1,5 @@
-#include "FS.h"
-#include "SD.h"
-#include "SPI.h"
+#include <SD.h>
+#include <SPI.h>
 
 void setup(){
     Serial.begin(115200);
@@ -36,13 +35,13 @@ void setup(){
 
     File file = SD.open(path);
     if(!file){
-        Serial.println("Failed to open file for reading");
         return;
     }
     Serial.print("File conent:\n");
     while(file.available()){
-        Serial.write(file.read());
+      Serial.write(file.read());
     }
+    
     file.close();
 }
 
