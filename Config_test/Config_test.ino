@@ -1,5 +1,8 @@
 #include <SD.h>
 #include <SPI.h>
+#include "Config.h"
+
+Config conf;
 
 void setup(){
     Serial.begin(115200);
@@ -17,11 +20,11 @@ void setup(){
     }
 
     Serial.print("SD Card Type: ");
-    if(cardType == CARD_MMC){
+    if(cardType == CARD_MMC) {
         Serial.println("MMC");
-    } else if(cardType == CARD_SD){
+    } else if(cardType == CARD_SD) {
         Serial.println("SDSC");
-    } else if(cardType == CARD_SDHC){
+    } else if(cardType == CARD_SDHC) {
         Serial.println("SDHC");
     } else {
         Serial.println("UNKNOWN");
@@ -34,15 +37,19 @@ void setup(){
     Serial.printf("Reading file: %s\n", path);
 
     File file = SD.open(path);
-    if(!file){
+    if(!file) {
         return;
     }
     Serial.print("File conent:\n");
-    while(file.available()){
+    while(file.available()) {
       Serial.write(file.read());
     }
     
     file.close();
+    conf.begin(SD);
+
+    Serial.println("SSID: '" + conf.getSSID() + "'");
+    Serial.println("password: '" + conf.getPassword() + "'");
 }
 
 void loop(){}
