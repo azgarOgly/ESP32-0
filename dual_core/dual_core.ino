@@ -1,3 +1,9 @@
+/*
+How to utilize both ESP32 cores.
+No parallel running of multiple tasks discovered yet.
+Is it even possiburu?
+*/
+
 TaskHandle_t Job0;
 TaskHandle_t Job1;
 
@@ -17,7 +23,7 @@ void loop() {
 }
 
 void job(void * parameter) {
-  for (;;) {
+  for (;;) { // NB! Infinite loop expected here, much like loop() function 
     int m = millis();
     Serial.print("job ");
     Serial.print(m);
