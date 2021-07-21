@@ -1,3 +1,6 @@
+// 5110 screen example code, straight from web, no changes.
+// TODO delete
+
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
