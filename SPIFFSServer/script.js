@@ -2,7 +2,7 @@ async function displayList() {
 	document.getElementById("list").innerHTML = "";
 	const list = await parseList();
 	list.forEach(e => {
-		document.getElementById("list").innerHTML += "<p><a href='" + e.name + "'> " + e.name + "</a> " + e.size + "</p>";
+		document.getElementById("list").innerHTML += "<p><a href=\"" + e.name + "\">" + e.name + "</a> <span>" + e.size + "</span></p>";
 	});
 }
 
