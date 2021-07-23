@@ -186,6 +186,33 @@ void handleInfo() {
   server.send(200, "text/plain", message);
 }
 
+void handleList() { 
+  String message = "Listing files: ";
+  Serial.printf("Listing directory: %s\r\n", "/");
+
+  File root = SPIFFS.open("/");
+  if(!root || !root.isDirectory()){
+    Serial.println("ERROR: failed to list directory");
+    server.send(500, "text/plain", "failed to list directory");
+  }
+
+  File file = root.openNextFile();
+  while(file){
+    if(file.isDirectory()) { // can that happen on SPIFFS?
+      message += "\n";
+      message += file.name();
+      message += ": dir";
+    } else {
+      message += "\n";
+      message += file.name();
+      message += ": ";
+      message += file.size();
+    }
+    file = root.openNextFile();
+  }
+  server.send(200, "text/plain", message);
+}
+
 void serverRouting() {
 
   server.on("/upload", HTTP_GET, []() {                 // if the client requests the upload page
@@ -199,6 +226,7 @@ void serverRouting() {
   );
 
   server.on("/info", handleInfo);
+  server.on("/list", handleList);
 
   server.onNotFound([]() {                           // If the client requests any URI
     Serial.println(F("On not found"));
