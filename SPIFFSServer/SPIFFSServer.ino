@@ -186,6 +186,15 @@ void handleInfo() {
   server.send(200, "text/plain", message);
 }
 
+void handleFormat() { 
+  Serial.println("Formatting file system");
+  if (SPIFFS.format()) {
+    server.send(200, "text/plain", "Format successful");
+  } else {
+    server.send(200, "text/plain", "Format failed");
+  }
+}
+
 void handleList() { 
   String message = "Listing files: ";
   Serial.printf("Listing directory: %s\r\n", "/");
@@ -227,6 +236,7 @@ void serverRouting() {
 
   server.on("/info", handleInfo);
   server.on("/list", handleList);
+  server.on("/format", handleFormat);
 
   server.onNotFound([]() {                           // If the client requests any URI
     Serial.println(F("On not found"));
