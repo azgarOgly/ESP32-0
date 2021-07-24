@@ -22,6 +22,12 @@ int channel = 0; // channel to control with encoder
 int lastState = 3; // encoder last state
 int counter = 0; // interrupt counter
 
+TaskHandle_t jobPWMHandle;
+
+int dt;
+int dtMax;
+int dtAvg;
+
 void handleRoot() {
   char temp[2000];
   int sec = millis() / 1000;
@@ -94,21 +100,19 @@ void handleData() { // receive GET request with new values per channel
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
     if(server.argName(i) == "L0") {
       l0 = server.arg(i).toInt();
-      ledcWrite(0, l0);
       Serial.printf("Setting L0 to %d\n", l0);
     }
     if(server.argName(i) == "L1") {
       l1 = server.arg(i).toInt();
-      ledcWrite(1, l1);
       Serial.printf("Setting L1 to %d\n", l1);
     }
     if(server.argName(i) == "L2") {
       l2 = server.arg(i).toInt();
-      ledcWrite(2, l2);
       Serial.printf("Setting L2 to %d\n", l2);
     }
   }
   server.send(200, "text/plain", message);
+  dtMax = 0;
 }
 
 void setup(void) {
@@ -118,18 +122,11 @@ void setup(void) {
 
   Serial.begin(115200);
 
-  pinMode(PIN_L0, OUTPUT); // one pin per channel
-  ledcSetup(0, 8000, 8);
-  ledcAttachPin(PIN_L0, 0);
-  ledcWrite(0, l0);
+  pinMode(PIN_L0, OUTPUT);
   pinMode(PIN_L1, OUTPUT);
-  ledcSetup(1, 8000, 8);
-  ledcAttachPin(PIN_L1, 1);
-  ledcWrite(1, l1);
   pinMode(PIN_L2, OUTPUT);
-  ledcSetup(2, 8000, 8);
-  ledcAttachPin(PIN_L2, 2);
-  ledcWrite(2, l2);
+
+  xTaskCreatePinnedToCore(jobPWM, "jobPWM", 10000, NULL, 0, &jobPWMHandle, 0);
 
   pinMode(PIN_C0, INPUT_PULLUP); // pins for encoder
   pinMode(PIN_C1, INPUT_PULLUP);
@@ -179,6 +176,7 @@ void loop(void) {
   server.handleClient(); // seems to be non blocking call
   digitalWrite(PIN_LED_READY, HIGH);
   delay(2);
+  Serial.printf("dt: %d, dtMax: %d, dtAvg: %d\n", dt, dtMax, dtAvg);
 }
 
 void handleEncoder() {
@@ -222,4 +220,41 @@ void handleButton() {
   // XXX why is this called when encoder is rotated? WTF?
   Serial.printf("Value: %d, Counter: %d, channel:%d\n", value, counter, channel);
   Serial.printf("L0: %d, L1: %d, L2:%d\n", l0, l1, l2);
+}
+
+int sum0 = 0;
+int sum1 = 0;
+int sum2 = 0;
+int lastValue0 = 0;
+int lastValue1 = 0;
+int lastValue2 = 0;
+int64_t lastTime = esp_timer_get_time();
+
+void jobPWM(void * parameter) {
+  for (;;) {
+    int64_t time = esp_timer_get_time();
+    dt = time - lastTime;
+    
+    int actual = lastValue0 * dt;
+    int expected = l0 * dt;
+    sum0 += expected - actual;
+    lastValue0 = (sum0 > expected) ? 255 : 0;
+    digitalWrite(PIN_L0, lastValue0 == 0 ? LOW : HIGH);
+
+    actual = lastValue1 * dt;
+    expected = l1 * dt;
+    sum1 += expected - actual;
+    lastValue1 = (sum1 > expected) ? 255 : 0;
+    digitalWrite(PIN_L1, lastValue1 == 0 ? LOW : HIGH);
+
+    actual = lastValue2 * dt;
+    expected = l2 * dt;
+    sum2 += expected - actual;
+    lastValue2 = (sum2 > expected) ? 255 : 0;
+    digitalWrite(PIN_L2, lastValue2 == 0 ? LOW : HIGH);
+    
+    lastTime = time;
+    if (dt > dtMax) { dtMax = dt; }
+    dtAvg = (dtAvg*99 + dt)/100;
+  }
 }
