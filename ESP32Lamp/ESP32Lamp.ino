@@ -33,7 +33,7 @@ void handleRoot() {
 
            "<html>\
   <head>\
-    <title>ESP32 Lamp server</title>\
+    <title>ESP32 L&Ouml;MP server</title>\
     <style>\
       body { background-color: #A0B0A0; font-family: Arial, Helvetica, Sans-Serif; Color: #000088; }\
     </style>\
@@ -46,7 +46,7 @@ void handleRoot() {
     var value1 = element1.value;\
     var value2 = element2.value;\
     const Http = new XMLHttpRequest();\
-    const url='http://esp32/data?L0=' + value0 + '&L1=' + value1  + '&L2=' + value2;\
+    const url='data?L0=' + value0 + '&L1=' + value1  + '&L2=' + value2;\
     Http.open('GET', url);\
     Http.send();\
 \
@@ -57,7 +57,7 @@ void handleRoot() {
   </script>\
   </head>\
   <body>\
-    <h1>ESP32 Lamp server</h1>\
+    <h1>ESP32 L&Ouml;MP server</h1>\
     <input id='L0input' type='range' min='0' max='255' value='%d' onChange='up()'><br>\
     <input id='L1input' type='range' min='0' max='255' value='%d' onChange='up()'><br>\
     <input id='L2input' type='range' min='0' max='255' value='%d' onChange='up()'><br>\
