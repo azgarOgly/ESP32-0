@@ -2,7 +2,10 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include "FS.h"
+#include "SPIFFS.h"
 #include "n13-48.h"
+#include "SPIFFSServer.h"
 
 #define PIN_L0 27 // output pins per channel
 #define PIN_L1 26
@@ -13,7 +16,20 @@
 #define PIN_LED_ON 16 // status LED yellow
 #define PIN_LED_READY 4 // status LED green
 
+const char* www_realm = "Custom Auth Realm";
+String authFailResponse = "Authentication Failed";
+const char* www_username = "admin";
+const char* www_password = "esp32";
+
+char PAGE_UPLOAD[] PROGMEM = R"(
+<form method="post" enctype="multipart/form-data">
+    <input type="file" name="name">
+    <input class="button" type="submit" value="Upload">
+</form>
+)";
+
 WebServer server(80);
+
 int l0 = 0; // duty cycles by channel
 int l1 = 0;
 int l2 = 0;
@@ -22,76 +38,9 @@ int channel = 0; // channel to control with encoder
 int lastState = 3; // encoder last state
 int counter = 0; // interrupt counter
 
-void handleRoot() {
-  char temp[2000];
-  int sec = millis() / 1000;
-  int min = sec / 60;
-  int hr = min / 60;
-
-// TODO move to separate file
-  snprintf(temp, 2000,
-
-           "<html>\
-  <head>\
-    <title>ESP32 L&Ouml;MP server</title>\
-    <style>\
-      body { background-color: #A0B0A0; font-family: Arial, Helvetica, Sans-Serif; Color: #000088; }\
-    </style>\
-      <script>\
-  function up() {\
-    var element0 = document.getElementById('L0input');\
-    var element1 = document.getElementById('L1input');\
-    var element2 = document.getElementById('L2input');\
-    var value0 = element0.value;\
-    var value1 = element1.value;\
-    var value2 = element2.value;\
-    const Http = new XMLHttpRequest();\
-    const url='data?L0=' + value0 + '&L1=' + value1  + '&L2=' + value2;\
-    Http.open('GET', url);\
-    Http.send();\
-\
-    Http.onreadystatechange = (e) => {\
-      console.log(Http.responseText)\
-    } \
-  }\
-  </script>\
-  </head>\
-  <body>\
-    <h1>ESP32 L&Ouml;MP server</h1>\
-    <input id='L0input' type='range' min='0' max='255' value='%d' onChange='up()'><br>\
-    <input id='L1input' type='range' min='0' max='255' value='%d' onChange='up()'><br>\
-    <input id='L2input' type='range' min='0' max='255' value='%d' onChange='up()'><br>\
-  </body>\
-</html>",
-           l0, l1, l2);
-  server.send(200, "text/html", temp);
-}
-
-void handleNotFound() {
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-
-  server.send(404, "text/plain", message);
-}
 
 void handleData() { // receive GET request with new values per channel
-  String message = "Mmkay ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
   for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
     if(server.argName(i) == "L0") {
       l0 = server.arg(i).toInt();
       ledcWrite(0, l0);
@@ -108,6 +57,8 @@ void handleData() { // receive GET request with new values per channel
       Serial.printf("Setting L2 to %d\n", l2);
     }
   }
+  char message[32]; 
+  sprintf(message, "L0=%d\nL1=%d\nL2=%d\n", l0, l1, l2);
   server.send(200, "text/plain", message);
 }
 
@@ -162,21 +113,56 @@ void setup(void) {
     Serial.println("MDNS responder started");
   }
 
-  server.on("/", handleRoot);
-  server.on("/inline", []() {
-    server.send(200, "text/plain", "this works as well");
-  });
-  server.on("/data", handleData);
-  server.onNotFound(handleNotFound);
+  Serial.print(F("Inizializing FS..."));
+  if (SPIFFS.begin(true)){
+    Serial.println(F("done."));
+  } else {
+    Serial.println(F("fail."));
+  }
+
+  Serial.println("Set routing for http server!");
+  serverRouting();
   server.begin();
   Serial.println("HTTP server started");
 
   digitalWrite(PIN_LED_READY, HIGH); // green on
 }
 
+void serverRouting() {
+
+  server.on("/admin/upload", HTTP_GET, []() {                 // if the client requests the upload page
+    if (!handleFileRead("/upload.html"))                // send it if it exists
+      server.send(200, "text/html", PAGE_UPLOAD);       // otherwise, serve predefined form
+  });
+
+  server.on("/admin/upload", HTTP_POST,                       // if the client posts to the upload page
+    [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
+    handleFileUpload                                    // Receive and save the file
+  );
+
+  server.on("/admin/info", handleInfo);
+  server.on("/admin/list", handleList);
+  server.on("/admin/format", handleFormat);
+
+  server.on("/data", handleData);
+
+  server.onNotFound([]() {                           // If the client requests any URI
+    Serial.println(F("On not found"));
+    if (!handleFileRead(server.uri())){                  // send it if it exists
+        handleNotFound(); // otherwise, respond with a 404 (Not Found) error
+    }
+  });
+
+  Serial.println(F("Set cache!"));
+  // Serve a file with no cache so every tile It's downloaded
+  server.serveStatic("/configuration.json", SPIFFS, "/configuration.json","no-cache, no-store, must-revalidate"); // what?
+  // Server all other page with long cache so browser chaching they
+  server.serveStatic("/", SPIFFS, "/","max-age=31536000");
+}
+
 void loop(void) {
   digitalWrite(PIN_LED_READY, LOW);
-  server.handleClient(); // seems to be non blocking call
+  server.handleClient();
   digitalWrite(PIN_LED_READY, HIGH);
   delay(2);
 }
