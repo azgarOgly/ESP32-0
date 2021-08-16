@@ -41,3 +41,13 @@ function assignValue(key, value) {
 		L2input.value = value;
 	}
 }
+
+function callData(L0v, L1v, L2v) {
+	const Http = new XMLHttpRequest();
+	const url='data?L0=' + L0v + '&L1=' + L1v  + '&L2=' + L2v;
+	Http.open('GET', url);
+	Http.send();
+	Http.onreadystatechange = (e) => {
+	  renewForm();
+	} 
+}

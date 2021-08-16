@@ -1,14 +1,25 @@
 <html>
 	<head>
-		<title>ESP32 L&Ouml;MP server</title>
+		<title>ESP32&nbsp;L&Ouml;MP&nbsp;server</title>
 		<script src="script.js"></script>
-		<link rel="stylesheet" href="/style.css">
-		<link rel="icon" href="/favicon.ico" type="image/x-icon">
+		<link rel="stylesheet" href="style.css">
+		<link rel="icon" href="favicon.ico" type="image/x-icon">
 	</head>
 	<body onLoad='renewForm()'>
+		<div>
 		<h1>ESP32 L&Ouml;MP server</h1>
-		<input id='L0input' type='range' min='0' max='255' value='0' onChange='up()'><br>
-		<input id='L1input' type='range' min='0' max='255' value='0' onChange='up()'><br>
-		<input id='L2input' type='range' min='0' max='255' value='0' onChange='up()'><br>
+		<div class="wide tall2">&nbsp;</div>
+		<input class="wide tall2" id='L0input' type='range' min='0' max='255' value='0' onChange='up()'><br>
+		<input class="wide tall2" id='L1input' type='range' min='0' max='255' value='0' onChange='up()'><br>
+		<input class="wide tall2" id='L2input' type='range' min='0' max='255' value='0' onChange='up()'><br>
+		<div class="wide tall2">&nbsp;</div>
+		<input class="quarter tall" type="button" value="Backlight" onClick="callData(0,0,255)">
+		<input class="quarter tall" type="button" value="Table light" onClick="callData(128,128,0)">
+		<input class="quarter tall" type="button" value="Evening" onClick="callData(64,0,16)">
+		<input class="quarter tall" type="button" value="Night" onClick="callData(8,2,8)">
+		<div class="vspacer wide">&nbsp;</div>
+		<input class="half tall" type="button" value="Lumos maximus" onClick="callData(255,255,255)">
+		<input class="half tall" type="button" value="Nox" onClick="callData(0,0,0)">
+		</div>
 	</body>
 </html>
