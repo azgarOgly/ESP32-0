@@ -66,19 +66,19 @@ void loop(void) {
 
 void serverRouting() {
 
-  server.on("/upload", HTTP_GET, []() {                 // if the client requests the upload page
+  server.on("/admin/upload", HTTP_GET, []() {                 // if the client requests the upload page
     if (!handleFileRead("/upload.html"))                // send it if it exists
-      server.send(200, "text/html", PAGE_UPLOAD); // otherwise, respond with a 404 (Not Found) error
+      server.send(200, "text/html", PAGE_UPLOAD);       // otherwise, serve predefined form
   });
 
-  server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
+  server.on("/admin/upload", HTTP_POST,                       // if the client posts to the upload page
     [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
     handleFileUpload                                    // Receive and save the file
   );
 
   server.on("/info", handleInfo);
-  server.on("/list", handleList);
-  server.on("/format", handleFormat);
+  server.on("/admin/list", handleList);
+  server.on("/admin/format", handleFormat);
 
   server.onNotFound([]() {                           // If the client requests any URI
     Serial.println(F("On not found"));
